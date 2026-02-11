@@ -1,4 +1,2 @@
 # rag-app
 
-yassin
-mohamed
