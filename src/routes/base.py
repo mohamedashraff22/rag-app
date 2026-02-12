@@ -1,6 +1,6 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Depends
 import os
-from helpers.config import get_settings
+from helpers.config import get_settings, Settings
 
 base_router = APIRouter(
     prefix="/api/v1",  # set the prefix for all routes in this router (empty means no prefix)
@@ -11,10 +11,10 @@ base_router = APIRouter(
 
 
 @base_router.get("/")  # define a GET endpoint at the root URL
-async def welcome():
-    app_settings = (
-        get_settings()
-    )  # get the settings instance to access configuration variables
+async def welcome(
+    app_settings: Settings = Depends(get_settings),
+):  # use Depends to inject the settings instance into the endpoint function
+    # app_settings = get_settings() # get the settings instance to access configuration variables
 
     app_name = app_settings.APP_NAME
     app_version = app_settings.APP_VERSION
