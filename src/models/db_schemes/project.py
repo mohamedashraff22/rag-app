@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field, validator
 from typing import Optional
-from bason.objectid import ObjectId
+from bson.objectid import ObjectId
 
 
 class Project(BaseModel):
     # any document put in mongodb , _id is added automatically, and this is its type -> ObjectId
-    _id: Optional[ObjectId]
+    id: Optional[ObjectId] = Field(None, alias="_id")
     project_id: str = Field(..., min_length=1)
 
     # design custom validation
@@ -19,5 +19,5 @@ class Project(BaseModel):
         return value
 
     # Object_id is a strange type for pydantic , so we it cant validate it and it will give me an error.
-    class config:
+    class Config:
         arbitrary_types_allowed = True  # this will allow any strange types

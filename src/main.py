@@ -13,7 +13,7 @@ async def startup_db_client():
     settings = get_settings()
     # in routes they will see it
     app.mongodb_conn = AsyncIOMotorClient(settings.MONGODB_URL)
-    app.db_client = app.mongodb_conn(settings.MONGODB_DATABASE)
+    app.db_client = app.mongodb_conn[settings.MONGODB_DATABASE]
 
 
 @app.on_event("shutdown")
