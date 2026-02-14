@@ -1,0 +1,17 @@
+services:
+  mongodb:
+    image: mongo:latest  # <--- Use 'latest' or '7.0' here
+    container_name: mongodb
+    ports:
+      - "27007:27017" # 27017 -> is the default port , 2007 -> is one i will use
+    volumes:
+      - ./mongodb:/data/db # it will create the db in this location
+    networks: # it should run on virtual network to access some ports and so on.
+      - backend
+
+    restart: always # in case of fail -> restart
+  
+networks:
+  backend:
+
+# docker compose up to run

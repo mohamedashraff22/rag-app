@@ -18,6 +18,9 @@ class Settings(
 
     FILE_DEFAULT_CHUNCK_SIZE: int
 
+    MONGODB_URL: str
+    MONGODB_DATABASE: str
+
     class Config:
         env_file = ".env"  # specify the name of the environment file to load
 
