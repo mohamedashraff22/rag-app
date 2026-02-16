@@ -21,3 +21,19 @@ class Project(BaseModel):
     # Object_id is a strange type for pydantic , so we it cant validate it and it will give me an error.
     class Config:
         arbitrary_types_allowed = True  # this will allow any strange types
+
+    # @ -> decorator (change the behaviour of a function)
+    # self -> function from object (normal way), cls -> static funtion -> not from object of a class (cls instead of self is optional i can still use self, butused for more readability).
+    @classmethod
+    def get_indexes(cls):
+        # return list of indecies.
+        # we can use more than one key like use (chunk_order & and chunk_project_id as one key for search) but here we will jsut use one
+        return [
+            {
+                "key": [  # one or more key (للفهرسة)
+                    ("project_id", 1)  # 1 -> ascending , -1 descending
+                ],
+                "name": "project_id_index_1",  # just a name for this index, and it will not be used for any other index
+                "unique": True,  # True -> in this filed all the values in it must be unique, and if i put a value that is already inside it give an error.
+            },
+        ]

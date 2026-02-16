@@ -17,13 +17,13 @@ sudo apt install libpq-dev gcc python3-dev
 2. Create a new environment using the following command:
 
 ```bash
-conda create -n mini-rag python=3.10
+conda create -n rag-app python=3.10
 ```
 
 3. Activate the environment:
 
 ```bash
-conda activate mini-rag
+conda activate rag-app
 ```
 
 ### (Optional) Setup you command line interface for better readability
