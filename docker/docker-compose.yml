@@ -5,13 +5,20 @@ services:
     ports:
       - "27007:27017" # 27017 -> is the default port , 2007 -> is one i will use
     volumes:
-      - ./mongodb:/data/db # it will create the db in this location
+      - mongodata:/data/db # it will create the db in this location
     networks: # it should run on virtual network to access some ports and so on.
       - backend
+
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
 
     restart: always # in case of fail -> restart
   
 networks:
   backend:
+
+volumes:
+  mongodata:
 
 # docker compose up to run

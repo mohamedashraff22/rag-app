@@ -8,6 +8,29 @@ class ProjectModel(BaseDataModel):
         super().__init__(db_client=db_client)
         self.collection = self.db_client[DataBaseEnum.COLLECTION_PROJECT_NAME.value]
 
+    # The most critical step
+    @classmethod
+    # cls as it static method, db_client -> as it takes the same thing that __init__ takes
+    async def create_instance(cls, db_client: object):
+        instance = cls(db_client)
+        await instance.init_collection()
+        return instance
+
+    # for creating indecies at the beginig for the project id.
+    async def init_collection(self):
+        # if collection is not created -> create index for it, and if it is already created i will just connect directly to it.
+        all_collections = await self.db_client.list_collection_names()
+        if DataBaseEnum.COLLECTION_PROJECT_NAME.value not in all_collections:
+            self.collection = self.db_client[DataBaseEnum.COLLECTION_PROJECT_NAME.value]
+            indexes = Project.get_indexes()
+            for index in indexes:
+                await self.collection.create_index(
+                    index["key"],
+                    name=index["name"],
+                    unique=index["unique"],
+                    # or await self.collection.create_index(**index)
+                )
+
     async def create_project(self, project: Project):
 
         # insert_one is from motor, as project is pydantic object , and insert one takes only dictinalry

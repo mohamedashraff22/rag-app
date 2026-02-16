@@ -12,8 +12,10 @@ from models import ResponseSignal
 import logging
 from .schemas.data import ProcessRequest
 from models.ProjectModel import ProjectModel
-from models.db_schemes import DataChunk
+from models.db_schemes import DataChunk, Asset
 from models.ChunkModel import ChunkModel
+from models.AssetModel import AssetModel
+from models.enums.AssetTypeEnum import AssetTypeEnum
 
 
 logger = logging.getLogger("uvicorn.error")
@@ -36,7 +38,9 @@ async def upload_data(
     app_settings: Settings = Depends(get_settings),
 ):
 
-    project_model = ProjectModel(db_client=request.app.db_client)
+    # instead of "project_model = ProjectModel(db_client=request.app.db_client)"
+    # as create_instance is asynchronous function, it must be called with await
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
 
     project = await project_model.get_or_create_one(project_id=project_id)
 
@@ -67,10 +71,24 @@ async def upload_data(
             content={"signal": ResponseSignal.FILE_UPLOADED_FAILED.value},
         )
 
+    # store the assets into the database
+    asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
+
+    asset_resource = Asset(
+        asset_project_id=project.id,
+        asset_type=AssetTypeEnum.FILE.value,
+        asset_name=file_id,
+        asset_size=os.path.getsize(file_path),
+    )
+
+    asset_record = await asset_model.create_asset(asset=asset_resource)
+
     return JSONResponse(
         content={
             "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-            "file_id": file_id,
+            "file_id": str(
+                asset_record.id
+            ),  # as it returns object from mongo so in python we neet to turn it to string
         }
     )
 
@@ -84,7 +102,7 @@ async def process_endpoint(
     chunck_overlap = process_request.chunk_overlap
     do_reset = process_request.do_reset
 
-    project_model = ProjectModel(db_client=request.app.db_client)
+    project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
 
     project = await project_model.get_or_create_one(project_id=project_id)
 
@@ -117,7 +135,7 @@ async def process_endpoint(
         for i, chunk in enumerate(file_chunks)
     ]
 
-    chunk_model = ChunkModel(db_client=request.app.db_client)
+    chunk_model = await ChunkModel.create_instance(db_client=request.app.db_client)
 
     if do_reset == 1:
         _ = await chunk_model.delete_chunks_by_project_id(project_id=project.id)
