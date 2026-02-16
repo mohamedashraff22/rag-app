@@ -86,7 +86,9 @@ async def upload_data(
     return JSONResponse(
         content={
             "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-            "file_id": asset_record.id,
+            "file_id": str(
+                asset_record.id
+            ),  # as it returns object from mongo so in python we neet to turn it to string
         }
     )
 
