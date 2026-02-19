@@ -93,6 +93,7 @@ async def upload_data(
     )
 
 
+# giving file_id will be now optional, if i give it process it, if its None scan all files in this project and process them.
 @data_router.post("/process/{project_id}")
 async def process_endpoint(
     request: Request, project_id: str, process_request: ProcessRequest
@@ -106,45 +107,87 @@ async def process_endpoint(
 
     project = await project_model.get_or_create_one(project_id=project_id)
 
-    process_controller = ProcessController(project_id=project_id)
+    asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
 
-    file_content = process_controller.get_file_content(file_id=file_id)
+    project_files_ids = {}
+    if process_request.file_id:  # given one file (note none)
+        asset_record = await asset_model.get_asset_record(
+            asset_project_id=project.id, asset_name=process_request.file_id
+        )
 
-    file_chunks = process_controller.process_file_content(
-        file_content=file_content,
-        file_id=file_id,
-        chunk_size=chunck_size,
-        chunk_overlap=chunck_overlap,
-    )
+        if asset_record is None:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={"signal": ResponseSignal.FILE_ID_ERROR.value},
+            )
 
-    if file_chunks is None or len(file_chunks) == 0:
+        project_files_ids = {asset_record.id: asset_record.asset_name}
+
+    else:  # None , no give file
+        # so now i will got all project file from the "asset model"
+        project_files = await asset_model.get_all_project_assets(
+            asset_project_id=project.id, asset_type=AssetTypeEnum.FILE.value
+        )  # now i have all the files in the collection, and i wnat to get the asset_id (file_id) , so i will iterate on them
+
+        project_files_ids = {record.id: record.asset_name for record in project_files}
+
+    if len(project_files_ids) == 0:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"signal": ResponseSignal.PROCESSING_FAILED.value},
+            content={"signal": ResponseSignal.NO_FILES_ERROR.value},
         )
 
-    # i want to turn evry chunk to object of DataChunk
-    file_chunks_records = [
-        DataChunk(
-            chunk_text=chunk.page_content,
-            chunk_metadata=chunk.metadata,
-            chunk_order=i + 1,
-            chunk_project_id=project.id,  # problem of _id -> as underscore for the pydantic means this is private (we access it with id , _id only use in mongo)
-        )
-        # enamurate is a normal loop that loops over list of elemtns , but it returns the element with its order
-        for i, chunk in enumerate(file_chunks)
-    ]
+    process_controller = ProcessController(project_id=project_id)
+
+    no_records = 0
+    no_files = 0
 
     chunk_model = await ChunkModel.create_instance(db_client=request.app.db_client)
 
     if do_reset == 1:
         _ = await chunk_model.delete_chunks_by_project_id(project_id=project.id)
 
-    no_records = await chunk_model.insert_many_chunks(chunks=file_chunks_records)
+    # loop over all files (either they are given id (just one file), or more)
+    for asset_id, file_id in project_files_ids.items():
+        file_content = process_controller.get_file_content(file_id=file_id)
+
+        if file_content is None:
+            logger.error(f"Error while processing file: {file_id}")
+            continue
+
+        file_chunks = process_controller.process_file_content(
+            file_content=file_content,
+            file_id=file_id,
+            chunk_size=chunck_size,
+            chunk_overlap=chunck_overlap,
+        )
+
+        if file_chunks is None or len(file_chunks) == 0:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={"signal": ResponseSignal.PROCESSING_FAILED.value},
+            )
+
+        # i want to turn evry chunk to object of DataChunk
+        file_chunks_records = [
+            DataChunk(
+                chunk_text=chunk.page_content,
+                chunk_metadata=chunk.metadata,
+                chunk_order=i + 1,
+                chunk_project_id=project.id,  # problem of _id -> as underscore for the pydantic means this is private (we access it with id , _id only use in mongo)
+                chunk_asset_id=asset_id,
+            )
+            # enamurate is a normal loop that loops over list of elemtns , but it returns the element with its order
+            for i, chunk in enumerate(file_chunks)
+        ]
+
+        no_records += await chunk_model.insert_many_chunks(chunks=file_chunks_records)
+        no_files += 1
 
     return JSONResponse(
         content={
             "signal": ResponseSignal.PROCESSING_SUCCESS.value,
             "inserted_chunks": no_records,
+            "proecessed_files": no_files,
         }
     )
