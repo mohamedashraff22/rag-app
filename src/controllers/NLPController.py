@@ -124,7 +124,7 @@ class NLPController(BaseController):
         chat_history = [
             self.generation_client.construct_prompt(
                 prompt=system_prompt,
-                role=self.generation_client.enums.SYSTEM.value,
+                role=self.generation_client.enums.SYSTEM.value, # get the SYSTEM from openai or cohere depends on the enums
             )
         ]
 
