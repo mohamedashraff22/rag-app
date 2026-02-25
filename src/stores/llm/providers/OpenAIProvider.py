@@ -27,7 +27,15 @@ class OpenAIProvider(LLMInterface):
         self.embedding_model_id = None
         self.embedding_size = None
 
-        self.client = OpenAI(api_key=self.api_key, api_url=self.api_url)
+        args = {
+            "api_key": self.api_key
+        }
+
+        # Only add base_url if it is not None AND not empty
+        if self.api_url and str(self.api_url).strip():
+            args["base_url"] = self.api_url
+
+        self.client = OpenAI(**args)
 
         # __name__ -> name of the current file iam in.
         self.logger = logging.getLogger(__name__)
