@@ -27,7 +27,18 @@ class QdrantDBProvider(VectorDBInterface):
         self.client = None
 
     def is_collection_existed(self, collection_name: str) -> bool:
-        return self.client.collection_exists(collection_name=collection_name)
+        try:
+            # Retrieve the list of all collections
+            response = self.client.get_collections()
+            
+            # Check if our collection name is in that list
+            for collection in response.collections:
+                if collection.name == collection_name:
+                    return True
+            return False
+        except Exception as e:
+            self.logger.error(f"Error checking if collection exists: {e}")
+            return False
     
     def list_all_collections(self) -> List:
         return self.client.get_collections()
