@@ -26,3 +26,7 @@ class DataChunk(BaseModel):
                 "unique": False,  # False -> may be we input a duplicated chunk its ok.
             },
         ]
+
+class RetrievedDocument(BaseModel):
+    text: str
+    score: float

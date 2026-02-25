@@ -27,16 +27,12 @@ class OpenAIProvider(LLMInterface):
         self.embedding_model_id = None
         self.embedding_size = None
 
-        args = {
-            "api_key": self.api_key
-        }
+        self.client = OpenAI(
+            api_key = self.api_key,
+            base_url = self.api_url if self.api_url and len(self.api_url) else None
+        )
 
-        # Only add base_url if it is not None AND not empty
-        if self.api_url and str(self.api_url).strip():
-            args["base_url"] = self.api_url
-
-        self.client = OpenAI(**args)
-
+        self.enums = OpenAIEnums
         # __name__ -> name of the current file iam in.
         self.logger = logging.getLogger(__name__)
 
@@ -56,56 +52,36 @@ class OpenAIProvider(LLMInterface):
     def process_text(self, text: str):
         return text[: self.default_input_max_characters].strip()
 
-    def generate_text(
-        self,
-        prompt: str,
-        chat_history: list = [],
-        max_output_tokens: int = None,  # only in python interface we can set them to deafult value -> None , other languages may get errors
-        temperature: float = None,
-    ):
-
-        # there is a problem in the client and it returns None
+    def generate_text(self, prompt: str, chat_history: list=[], max_output_tokens: int=None,
+                            temperature: float = None):
+        
         if not self.client:
-            # raise ValueError("OpenAI client was not set") # but i will not use this as this error will break my application.
             self.logger.error("OpenAI client was not set")
-            # logger.info, logger.warning, logger.error
             return None
 
         if not self.generation_model_id:
             self.logger.error("Generation model for OpenAI was not set")
             return None
-
-        max_output_tokens = (
-            max_output_tokens
-            if max_output_tokens
-            else self.default_generation_max_output_tokens
-        )
-        temperature = (
-            temperature if temperature else self.default_generation_temperature
-        )
+        
+        max_output_tokens = max_output_tokens if max_output_tokens else self.default_generation_max_output_tokens
+        temperature = temperature if temperature else self.default_generation_temperature
 
         chat_history.append(
             self.construct_prompt(prompt=prompt, role=OpenAIEnums.USER.value)
         )
 
         response = self.client.chat.completions.create(
-            model=self.generation_model_id,
-            messages=chat_history,
-            max_tokens=max_output_tokens,
-            temperature=temperature,
+            model = self.generation_model_id,
+            messages = chat_history,
+            max_completion_tokens = max_output_tokens,
+            temperature = temperature
         )
 
-        # validations
-        if (
-            not response
-            or not response.choices
-            or len(response.choices) == 0
-            or not response.choices[0].message
-        ):
+        if not response or not response.choices or len(response.choices) == 0 or not response.choices[0].message:
             self.logger.error("Error while generating text with OpenAI")
             return None
 
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content
 
     def embed_text(self, text: str, document_type: str = None):
 
