@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* Python 3.8 or above
+* Python 3.10 or above
 
 ### Install Dependencies
 
