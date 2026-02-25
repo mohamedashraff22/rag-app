@@ -10,7 +10,7 @@ import os
 import aiofiles
 from models import ResponseSignal
 import logging
-from .schemas.data import ProcessRequest
+from .schemes.data import ProcessRequest
 from models.ProjectModel import ProjectModel
 from models.db_schemes import DataChunk, Asset
 from models.ChunkModel import ChunkModel
@@ -42,7 +42,7 @@ async def upload_data(
     # as create_instance is asynchronous function, it must be called with await
     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
 
-    project = await project_model.get_or_create_one(project_id=project_id)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
 
     # validate the file properties (i will do it in controllers (separtate logic from routes))
     data_controller = DataController()
@@ -105,7 +105,7 @@ async def process_endpoint(
 
     project_model = await ProjectModel.create_instance(db_client=request.app.db_client)
 
-    project = await project_model.get_or_create_one(project_id=project_id)
+    project = await project_model.get_project_or_create_one(project_id=project_id)
 
     asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
 

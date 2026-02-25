@@ -43,7 +43,7 @@ class ProjectModel(BaseDataModel):
 
         return project
 
-    async def get_or_create_one(
+    async def get_project_or_create_one(
         self, project_id: str
     ):  # we get the project if its already there and if its not we create it.
         record = await self.collection.find_one(
