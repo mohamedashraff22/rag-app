@@ -1,4 +1,4 @@
-from string import Template # to add variables in the prompts. 
+from string import Template
 
 #### RAG PROMPTS ####
 
@@ -18,7 +18,7 @@ system_prompt = Template("\n".join([
 #### Document ####
 document_prompt = Template(
     "\n".join([
-        "## Document No: $doc_num", # $ -> for variables 
+        "## Document No: $doc_num",
         "### Content: $chunk_text",
     ])
 )
@@ -26,5 +26,8 @@ document_prompt = Template(
 #### Footer ####
 footer_prompt = Template("\n".join([
     "Based only on the above documents, please generate an answer for the user.",
+    "## Question:",
+    "$query",
+    "", # tell me that query ended
     "## Answer:",
 ]))
