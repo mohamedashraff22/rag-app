@@ -23,7 +23,7 @@ conda create -n rag-app python=3.10
 3. Activate the environment:
 
 ```bash
-conda activate rag-app
+conda activate rag-app-env
 ```
 
 ### (Optional) Setup you command line interface for better readability
