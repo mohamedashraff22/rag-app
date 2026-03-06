@@ -11,7 +11,7 @@ class ProjectController(BaseController):
     def get_project_path(self, project_id: str):
         project_dir = os.path.join(
             self.files_dir,
-            project_id,  # as it inherit from the BaseController which has the files_dir inside it
+            str(project_id),  # as it inherit from the BaseController which has the files_dir inside it
         )
 
         if not os.path.exists(project_dir):

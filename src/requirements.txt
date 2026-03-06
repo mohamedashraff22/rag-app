@@ -11,3 +11,7 @@ motor==3.7.1
 openai==2.21.0
 cohere==5.20.6
 qdrant-client==1.7.0
+SQLAlchemy==2.0.46
+asyncpg==0.31.0 # fast api work async and we want to use postgres async too (client for asyncrounous postgre)
+alembic==1.18.4
+psycopg2==2.9.11 # as alembic work outside my code it needs client for it self -> psycopg2 just to run alembic

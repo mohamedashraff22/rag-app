@@ -1,19 +1,25 @@
 from fastapi import FastAPI
 from routes import base, data, nlp
-from motor.motor_asyncio import AsyncIOMotorClient
 from helpers.config import get_settings
 from stores.llm.LLMProviderFactory import LLMProviderFactory
 from stores.vectordb.VectorDBProviderFactory import VectorDBProviderFactory
 from stores.llm.templates.template_parser import TemplateParser
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession # create_async_engine -> connect to postgres
+from sqlalchemy.orm import sessionmaker
 
 app = FastAPI()
 
 async def startup_span():
     # the data i will atach to the whole application
     settings = get_settings()
-    # in routes they will see it
-    app.mongodb_conn = AsyncIOMotorClient(settings.MONGODB_URL)
-    app.db_client = app.mongodb_conn[settings.MONGODB_DATABASE]
+    # postgres_conn = f"postgresql+asyncpg://user:pass@localhost:5432/database_name"
+    postgres_conn = f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}"
+
+    app.db_engine = create_async_engine(postgres_conn) # i make this engine to create session maker (create session talk to db and then close it).
+    
+    app.db_client = sessionmaker(
+        app.db_engine, class_=AsyncSession, expire_on_commit=False # class -> type of session. False as i will do it my self in the code.
+    )
     
     llm_provider_factory = LLMProviderFactory(settings)
     vectordb_provider_factory = VectorDBProviderFactory(settings)
@@ -40,12 +46,8 @@ async def startup_span():
 
 
 async def shutdown_span():
-    app.mongodb_conn.close()
+    app.db_engine.dispose() # dispose -> close
     app.vectordb_client.disconnect()
-
-# can take more than one funtion in this list.    
-# app.router.lifespan.on_startup.append(startup_span)
-# app.router.lifespan.on_shutdown.append(shutdown_span)
 
 app.on_event("startup")(startup_span)
 app.on_event("shutdown")(shutdown_span)

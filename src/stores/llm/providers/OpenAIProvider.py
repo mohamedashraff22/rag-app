@@ -112,4 +112,7 @@ class OpenAIProvider(LLMInterface):
 
     # OpenAI expect all messages to be like this, role and content should be in enum as they changing from provider to provider.
     def construct_prompt(self, prompt: str, role: str):
-        return {"role": role, "content": self.process_text(prompt)}
+        return {
+            "role": role,
+            "content": prompt
+            }

@@ -1,83 +1,65 @@
 from .BaseDataModel import BaseDataModel
 from .db_schemes import Project
 from .enums.DataBaseEnum import DataBaseEnum
-
+from sqlalchemy.future import select
+from sqlalchemy import func # to get func.count
 
 class ProjectModel(BaseDataModel):
     def __init__(self, db_client: object):
         super().__init__(db_client=db_client)
-        self.collection = self.db_client[DataBaseEnum.COLLECTION_PROJECT_NAME.value]
+        self.collection = db_client
 
     # The most critical step
     @classmethod
     # cls as it static method, db_client -> as it takes the same thing that __init__ takes
     async def create_instance(cls, db_client: object):
         instance = cls(db_client)
-        await instance.init_collection()
         return instance
 
-    # for creating indecies at the beginig for the project id.
-    async def init_collection(self):
-        # if collection is not created -> create index for it, and if it is already created i will just connect directly to it.
-        all_collections = await self.db_client.list_collection_names()
-        if DataBaseEnum.COLLECTION_PROJECT_NAME.value not in all_collections:
-            self.collection = self.db_client[DataBaseEnum.COLLECTION_PROJECT_NAME.value]
-            indexes = Project.get_indexes()
-            for index in indexes:
-                await self.collection.create_index(
-                    index["key"],
-                    name=index["name"],
-                    unique=index["unique"],
-                    # or await self.collection.create_index(**index)
-                )
-
     async def create_project(self, project: Project):
-
-        # insert_one is from motor, as project is pydantic object , and insert one takes only dictinalry
-        result = await self.collection.insert_one(
-            project.dict(by_alias=True, exclude_unset=True)
-        )  # no we will use alias (_id while pydantic see it as _id)
-
-        # _id (it will be created once we inseted in the data)
-        project.id = result.inserted_id
-
+        async with self.db_client() as session:
+            async with session.begin(): # outside this with it will close the connection automatically.
+                session.add(project)
+            await session.commit()
+            await session.refresh(project)
+        
         return project
 
-    async def get_project_or_create_one(
-        self, project_id: str
-    ):  # we get the project if its already there and if its not we create it.
-        record = await self.collection.find_one(
-            {"project_id": project_id}  # -> the filter <-
-        )  # find_one is from motor
+    async def get_project_or_create_one(self, project_id: str):
+        async with self.db_client() as session:
+            async with session.begin():
+                query = select(Project).where(Project.project_id == project_id)
+                result = await session.execute(query)
+                project = result.scalar_one_or_none()
+                if project is None:
+                    project_rec = Project(
+                        project_id = project_id
+                    )
 
-        if record is None:  # the project is not found, so we will need to create it
-            # create project
-            project = Project(project_id=project_id)  # Project -> our data model
-            project = await self.create_project(project=project)
-
-            return project
-
-        # return record  # this will not work as record is a dictinary, as find_one return a dictiionary , and insert_one take a dictionary
-        # its like i give evry model in the dictionary to the model , so the output will be project model
-        return Project(**record)
-
+                    project = await self.create_project(project=project_rec)
+                    return project
+                else:
+                    return project
+        
+        
+        
     # 1,10 are default values
-    async def get_all_projects(self, page: int = 1, page_size: int = 10):
+    async def get_all_projects(self, page: int=1, page_size: int=10):
 
-        # count total number of documents (records)
-        # count_documents is from motor, {} is an empty filter
-        total_documents = await self.collection.count_documents({})
+        async with self.db_client() as session:
+            async with session.begin():
 
-        # calculate total number of pages
-        total_pages = total_documents // page_size
-        if total_documents % page_size > 0:
-            total_pages += 1
+                total_documents = await session.execute(select(
+                    func.count( Project.project_id )
+                ))
 
-        # collecting data form the db
-        # we use this way insead of loading the whole data (network and memory problems will happen if i load the whole data in the DB)
-        cursor = self.collection.find().skip((page - 1) * page_size).limit(page_size)
-        projects = []
-        async for document in cursor:  # as cursor is from collection.find -> motor and this is async so we add async to the for loop
-            projects.append(Project(**document))
+                total_documents = total_documents.scalar_one()
 
-        return projects, total_pages
+                total_pages = total_documents // page_size
+                if total_documents % page_size > 0:
+                    total_pages += 1
+
+                query = select(Project).offset((page - 1) * page_size ).limit(page_size) # offsit -> هبدا منين , limit -> هقف فين.
+                projects = await session.execute(query).scalars().all()
+
+                return projects, total_pages

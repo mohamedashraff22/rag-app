@@ -33,7 +33,7 @@ data_router = APIRouter(
 @data_router.post("/upload/{project_id}")  # define a POST endpoint at the /upload URL
 async def upload_data(
     request: Request,  # request = Request -> get all the information about the request coming to me inclued the app in the main as i want to access the db connection which is in the main
-    project_id: str,
+    project_id: int, # postgres -> int, mongo -> str.
     file: UploadFile,
     app_settings: Settings = Depends(get_settings),
 ):
@@ -75,7 +75,7 @@ async def upload_data(
     asset_model = await AssetModel.create_instance(db_client=request.app.db_client)
 
     asset_resource = Asset(
-        asset_project_id=project.id,
+        asset_project_id=project.project_id,
         asset_type=AssetTypeEnum.FILE.value,
         asset_name=file_id,
         asset_size=os.path.getsize(file_path),
@@ -86,9 +86,7 @@ async def upload_data(
     return JSONResponse(
         content={
             "signal": ResponseSignal.FILE_UPLOAD_SUCCESS.value,
-            "file_id": str(
-                asset_record.id
-            ),  # as it returns object from mongo so in python we neet to turn it to string
+            "file_id": str(asset_record.asset_id),  # as it returns object from mongo so in python we neet to turn it to string
         }
     )
 
@@ -96,7 +94,7 @@ async def upload_data(
 # giving file_id will be now optional, if i give it process it, if its None scan all files in this project and process them.
 @data_router.post("/process/{project_id}")
 async def process_endpoint(
-    request: Request, project_id: str, process_request: ProcessRequest
+    request: Request, project_id: int, process_request: ProcessRequest
 ):
     file_id = process_request.file_id
     chunck_size = process_request.chunk_size
@@ -112,7 +110,7 @@ async def process_endpoint(
     project_files_ids = {}
     if process_request.file_id:  # given one file (note none)
         asset_record = await asset_model.get_asset_record(
-            asset_project_id=project.id, asset_name=process_request.file_id
+            asset_project_id=project.project_id, asset_name=process_request.file_id
         )
 
         if asset_record is None:
@@ -121,15 +119,17 @@ async def process_endpoint(
                 content={"signal": ResponseSignal.FILE_ID_ERROR.value},
             )
 
-        project_files_ids = {asset_record.id: asset_record.asset_name}
+        project_files_ids = {
+            asset_record.asset_id: asset_record.asset_name
+        }
 
     else:  # None , no give file
         # so now i will got all project file from the "asset model"
         project_files = await asset_model.get_all_project_assets(
-            asset_project_id=project.id, asset_type=AssetTypeEnum.FILE.value
+            asset_project_id=project.project_id, asset_type=AssetTypeEnum.FILE.value
         )  # now i have all the files in the collection, and i wnat to get the asset_id (file_id) , so i will iterate on them
 
-        project_files_ids = {record.id: record.asset_name for record in project_files}
+        project_files_ids = {record.asset_id: record.asset_name for record in project_files}
 
     if len(project_files_ids) == 0:
         return JSONResponse(
@@ -145,7 +145,7 @@ async def process_endpoint(
     chunk_model = await ChunkModel.create_instance(db_client=request.app.db_client)
 
     if do_reset == 1:
-        _ = await chunk_model.delete_chunks_by_project_id(project_id=project.id)
+        _ = await chunk_model.delete_chunks_by_project_id(project_id=project.project_id)
 
     # loop over all files (either they are given id (just one file), or more)
     for asset_id, file_id in project_files_ids.items():
@@ -174,7 +174,7 @@ async def process_endpoint(
                 chunk_text=chunk.page_content,
                 chunk_metadata=chunk.metadata,
                 chunk_order=i + 1,
-                chunk_project_id=project.id,  # problem of _id -> as underscore for the pydantic means this is private (we access it with id , _id only use in mongo)
+                chunk_project_id=project.project_id,  # problem of _id -> as underscore for the pydantic means this is private (we access it with id , _id only use in mongo)
                 chunk_asset_id=asset_id,
             )
             # enamurate is a normal loop that loops over list of elemtns , but it returns the element with its order
