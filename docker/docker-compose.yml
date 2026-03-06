@@ -16,12 +16,12 @@ services:
     restart: always # in case of fail -> restart
 
   pgvector:
-    image: pgvector/pgvector:0.8.0-pg17
+    image: pgvector/pgvector:pg18-trixie # pgvector/pgvector -> repo on docker hub
     container_name: pgvector
     ports:
-      - "5432:5432"
+      - "5432:5432" # i can change the firset one (my local port), it runs by default on port 5432 and i ecpose it on 5432 too here.
     volumes:
-      - pgvector_data:/var/lib/postgresql/data
+      - pgvector_data:/var/lib/postgresql
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
