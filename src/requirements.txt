@@ -15,3 +15,5 @@ SQLAlchemy==2.0.46
 asyncpg==0.31.0 # fast api work async and we want to use postgres async too (client for asyncrounous postgre)
 alembic==1.18.4
 psycopg2==2.9.11 # as alembic work outside my code it needs client for it self -> psycopg2 just to run alembic
+pgvector==0.4.2
+nltk==3.9.3
