@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* Python 3.10 or above
+* Python 3.11 or above
 
 ### Install Dependencies
 
@@ -17,7 +17,7 @@ sudo apt install libpq-dev gcc python3-dev
 2. Create a new environment using the following command:
 
 ```bash
-conda create -n rag-app python=3.10
+conda create -n rag-app python=3.11
 ```
 
 3. Activate the environment:
@@ -56,4 +56,10 @@ $ uvicorn main:app --reload --host 0.0.0.0 --port 5000
 ## Run the pgvector container (service)
 ```bash
 $ sudo docker compose up pgvector -d
+```
+
+### Run Alembic Migration
+
+```bash
+$ alembic upgrade head
 ```
