@@ -2,6 +2,7 @@ from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
 )  # settingconfigdict is used to specify the configuration for the settings class, such as the environment file to load and whether to allow extra fields in the settings.
+from typing import List
 
 
 class Settings(
@@ -19,13 +20,13 @@ class Settings(
 
     # MONGODB_URL: str
     # MONGODB_DATABASE: str
-    
+
     POSTGRES_USERNAME: str
     POSTGRES_PASSWORD: str
     POSTGRES_HOST: str
     POSTGRES_PORT: int
     POSTGRES_MAIN_DATABASE: str
-    
+
     GENERATION_BACKEND: str
     EMBEDDING_BACKEND: str
 
@@ -33,17 +34,20 @@ class Settings(
     OPENAI_API_URL: str = None
     COHERE_API_KEY: str = None
 
+    GENERATION_MODEL_ID_LITERAL: List[str] = None
     GENERATION_MODEL_ID: str = None
     EMBEDDING_MODEL_ID: str = None
     EMBEDDING_MODEL_SIZE: int = None
     INPUT_DAFAULT_MAX_CHARACTERS: int = None
     GENERATION_DAFAULT_MAX_TOKENS: int = None
     GENERATION_DAFAULT_TEMPERATURE: float = None
-    
+
+    VECTOR_DB_BACKEND_LITERAL: List[str] = None
     VECTOR_DB_BACKEND: str
     VECTOR_DB_PATH: str
     VECTOR_DB_DISTANCE_METHOD: str = None
-    
+    VECTOR_DB_PGVEC_INDEX_THRESHOLD: int = 100
+
     PRIMARY_LANG: str = "en"
     DEFAULT_LANG: str = "en"
 
