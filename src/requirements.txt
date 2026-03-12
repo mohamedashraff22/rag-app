@@ -17,3 +17,8 @@ alembic==1.18.4
 psycopg2==2.9.11 # as alembic work outside my code it needs client for it self -> psycopg2 just to run alembic
 pgvector==0.4.2
 nltk==3.9.3
+
+# Monitoring and metrics
+prometheus-client==0.24.1
+starlette-exporter==0.23.0
+fastapi-health==0.4.0 # Health checks
