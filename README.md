@@ -63,3 +63,9 @@ $ sudo docker compose up pgvector -d
 ```bash
 $ alembic upgrade head
 ```
+
+### Run
+
+```
+$ sudo docker compose up --build
+```
