@@ -1,65 +1,95 @@
+"""
+Project model module for managing project records in the database.
+"""
+
 from .BaseDataModel import BaseDataModel
 from .db_schemes import Project
-from .enums.DataBaseEnum import DataBaseEnum
 from sqlalchemy.future import select
-from sqlalchemy import func # to get func.count
+from sqlalchemy import func
+from typing import List, Tuple, Optional
+
 
 class ProjectModel(BaseDataModel):
+    """
+    Model for performing database operations on Project records.
+    """
+
     def __init__(self, db_client: object):
+        """
+        Initializes the project model with a database client.
+        """
         super().__init__(db_client=db_client)
-        self.collection = db_client
 
-    # The most critical step
     @classmethod
-    # cls as it static method, db_client -> as it takes the same thing that __init__ takes
-    async def create_instance(cls, db_client: object):
-        instance = cls(db_client)
-        return instance
+    async def create_instance(cls, db_client: object) -> "ProjectModel":
+        """
+        Factory method to create a new instance of ProjectModel.
+        """
+        return cls(db_client)
 
-    async def create_project(self, project: Project):
+    async def create_project(self, project: Project) -> Project:
+        """
+        Creates a new project record in the database.
+        
+        Args:
+            project (Project): The project object to persist.
+            
+        Returns:
+            Project: The persisted project object.
+        """
         async with self.db_client() as session:
-            async with session.begin(): # outside this with it will close the connection automatically.
+            async with session.begin():
                 session.add(project)
             await session.commit()
             await session.refresh(project)
         
         return project
 
-    async def get_project_or_create_one(self, project_id: str):
+    async def get_project_or_create_one(self, project_id: str) -> Project:
+        """
+        Retrieves an existing project by ID or creates a new one if it doesn't exist.
+        """
         async with self.db_client() as session:
             async with session.begin():
                 query = select(Project).where(Project.project_id == project_id)
                 result = await session.execute(query)
                 project = result.scalar_one_or_none()
+                
                 if project is None:
-                    project_rec = Project(
-                        project_id = project_id
-                    )
-
+                    project_rec = Project(project_id=project_id)
                     project = await self.create_project(project=project_rec)
-                    return project
-                else:
-                    return project
-        
-        
-        
-    # 1,10 are default values
-    async def get_all_projects(self, page: int=1, page_size: int=10):
+                
+                return project
 
+    async def get_all_projects(self, page: int = 1, page_size: int = 10) -> Tuple[List[Project], int]:
+        """
+        Retrieves a paginated list of all projects and the total number of pages.
+        
+        Args:
+            page (int): The page number to retrieve.
+            page_size (int): Number of projects per page.
+            
+        Returns:
+            Tuple[List[Project], int]: A list of projects and the total page count.
+        """
         async with self.db_client() as session:
             async with session.begin():
+                # Count total projects
+                count_query = select(func.count(Project.project_id))
+                total_documents_result = await session.execute(count_query)
+                total_documents = total_documents_result.scalar_one()
 
-                total_documents = await session.execute(select(
-                    func.count( Project.project_id )
-                ))
+                # Calculate total pages
+                total_pages = (total_documents + page_size - 1) // page_size
 
-                total_documents = total_documents.scalar_one()
-
-                total_pages = total_documents // page_size
-                if total_documents % page_size > 0:
-                    total_pages += 1
-
-                query = select(Project).offset((page - 1) * page_size ).limit(page_size) # offsit -> هبدا منين , limit -> هقف فين.
-                projects = await session.execute(query).scalars().all()
+                # Retrieve paginated projects
+                query = (
+                    select(Project)
+                    .offset((page - 1) * page_size)
+                    .limit(page_size)
+                )
+                result = await session.execute(query)
+                projects = result.scalars().all()
 
                 return projects, total_pages
+

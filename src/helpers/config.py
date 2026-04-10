@@ -1,14 +1,22 @@
+"""
+Configuration module for the RAG App.
+This module defines the Settings class for managing application configuration
+via environment variables and .env files.
+"""
+
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
-)  # settingconfigdict is used to specify the configuration for the settings class, such as the environment file to load and whether to allow extra fields in the settings.
+)
 from typing import List
 
 
-class Settings(
-    BaseSettings
-):  # inherit from BaseSettings to create a settings class that can read configuration from environment variables or a .env file.
-    # Define your configuration variables here
+class Settings(BaseSettings):
+    """
+    Application settings class.
+    Inherits from pydantic_settings.BaseSettings to automatically load
+    configuration from environment variables or a .env file.
+    """
 
     APP_NAME: str
     APP_VERSION: str
@@ -17,9 +25,6 @@ class Settings(
     FILE_ALLOWED_TYPES: list
     FILE_MAX_SIZE: int
     FILE_DEFAULT_CHUNCK_SIZE: int
-
-    # MONGODB_URL: str
-    # MONGODB_DATABASE: str
 
     POSTGRES_USERNAME: str
     POSTGRES_PASSWORD: str
@@ -51,9 +56,15 @@ class Settings(
     PRIMARY_LANG: str = "en"
     DEFAULT_LANG: str = "en"
 
-    class Config:
-        env_file = ".env"  # specify the name of the environment file to load
+    model_config = SettingsConfigDict(env_file=".env")
 
 
-def get_settings():
-    return Settings()  # create an instance (object) of the Settings class, which will automatically read the configuration from the environment variables or the .env file.
+def get_settings() -> Settings:
+    """
+    Retrieves the application settings instance.
+    
+    Returns:
+        Settings: The application configuration settings.
+    """
+    return Settings()
+
