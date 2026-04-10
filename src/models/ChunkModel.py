@@ -1,46 +1,63 @@
+"""
+Chunk model module for managing data chunks in the database.
+"""
+
 from .BaseDataModel import BaseDataModel
 from .db_schemes import DataChunk
-from .enums.DataBaseEnum import DataBaseEnum
-from bson.objectid import ObjectId
-from pymongo import InsertOne
 from sqlalchemy.future import select
 from sqlalchemy import func, delete
+from typing import List, Optional, Any
+
 
 class ChunkModel(BaseDataModel):
+    """
+    Model for performing database operations on DataChunk records.
+    """
+
     def __init__(self, db_client: object):
+        """
+        Initializes the chunk model with a database client.
+        """
         super().__init__(db_client=db_client)
-        self.collection = db_client
 
     @classmethod
-    # cls as it class method, db_client -> as it takes the same thing that __init__ takes
-    async def create_instance(cls, db_client: object):
-        instance = cls(db_client)
-        return instance
+    async def create_instance(cls, db_client: object) -> "ChunkModel":
+        """
+        Factory method to create a new instance of ChunkModel.
+        """
+        return cls(db_client)
 
-    async def create_chunk(self, chunk: DataChunk):
-
+    async def create_chunk(self, chunk: DataChunk) -> DataChunk:
+        """
+        Creates a new data chunk record in the database.
+        """
         async with self.db_client() as session:
             async with session.begin():
                 session.add(chunk)
             await session.commit()
             await session.refresh(chunk)
         return chunk
-        
 
-    # in MongoDB we use "Object_id", outside mognodb we use "str"
-    async def get_chunk(self, chunk_id: str):
-
-        async with self.db_client() as session: # using begin in execution here is optional if i dont right it it will work aoutomatically
+    async def get_chunk(self, chunk_id: str) -> Optional[DataChunk]:
+        """
+        Retrieves a single data chunk by its primary key.
+        """
+        async with self.db_client() as session:
             result = await session.execute(select(DataChunk).where(DataChunk.chunk_id == chunk_id))
             chunk = result.scalar_one_or_none()
         return chunk
-        
-        
-    # we dont want to insert chunk (chunk by chunk) -> so we use "bulk write from motor" (for memory usage efficiency)
-    # InsertOne is not insert_one
-    # by default = 100 if i dont pass a value my self
-    async def insert_many_chunks(self, chunks: list, batch_size: int=100):
 
+    async def insert_many_chunks(self, chunks: List[DataChunk], batch_size: int = 100) -> int:
+        """
+        Inserts multiple data chunks into the database using batch processing.
+        
+        Args:
+            chunks (List[DataChunk]): List of chunk objects to insert.
+            batch_size (int): Number of records per transaction batch.
+            
+        Returns:
+            int: The number of records inserted.
+        """
         async with self.db_client() as session:
             async with session.begin():
                 for i in range(0, len(chunks), batch_size):
@@ -49,28 +66,41 @@ class ChunkModel(BaseDataModel):
             await session.commit()
         return len(chunks)
 
+    async def delete_chunks_by_project_id(self, project_id: Any) -> int:
+        """
+        Deletes all chunks associated with a specific project.
         
-
-    async def delete_chunks_by_project_id(self, project_id: ObjectId):
+        Returns:
+            int: The number of deleted rows.
+        """
         async with self.db_client() as session:
             stmt = delete(DataChunk).where(DataChunk.chunk_project_id == project_id)
             result = await session.execute(stmt)
             await session.commit()
         return result.rowcount
     
-    # as i dont know how many chunks i will return, it is not a good thing to return them as a whole at once, so i wll move page by page.
-    async def get_poject_chunks(self, project_id: ObjectId, page_no: int=1, page_size: int=50):
+    async def get_project_chunks(self, project_id: Any, page_no: int = 1, page_size: int = 50) -> List[DataChunk]:
+        """
+        Retrieves a paginated list of chunks for a specific project.
+        """
         async with self.db_client() as session:
-            stmt = select(DataChunk).where(DataChunk.chunk_project_id == project_id).offset((page_no - 1) * page_size).limit(page_size)
+            stmt = (
+                select(DataChunk)
+                .where(DataChunk.chunk_project_id == project_id)
+                .offset((page_no - 1) * page_size)
+                .limit(page_size)
+            )
             result = await session.execute(stmt)
             records = result.scalars().all()
         return records
         
-    async def get_total_chunks_count(self, project_id: ObjectId):
-        total_count = 0
+    async def get_total_chunks_count(self, project_id: Any) -> int:
+        """
+        Retrieves the total count of chunks for a specific project.
+        """
         async with self.db_client() as session:
-            count_sql = select(func.count(DataChunk.chunk_id)).where(DataChunk.chunk_project_id == project_id) # use sqlalchemy instead of real sql query as in the pgvector.
+            count_sql = select(func.count(DataChunk.chunk_id)).where(DataChunk.chunk_project_id == project_id)
             records_count = await session.execute(count_sql)
             total_count = records_count.scalar()
         
-        return total_count
+        return total_count if total_count else 0

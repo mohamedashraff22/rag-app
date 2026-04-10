@@ -1,4 +1,6 @@
-"""Middleware"""
+"""
+Middleware and utilities for exposing Prometheus metrics.
+"""
 
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi import FastAPI, Request, Response
@@ -15,9 +17,21 @@ REQUEST_LATENCY = Histogram(
 
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
-    # function that will always be used for every request will pass on it.
-    async def dispatch(self, request: Request, call_next):  # شكل ثابت
+    """
+    HTTP middleware that records request latency and count for Prometheus.
+    """
 
+    async def dispatch(self, request: Request, call_next):
+        """
+        Processes each request to record metrics.
+        
+        Args:
+            request (Request): The incoming HTTP request.
+            call_next: The next handler in the middleware chain.
+            
+        Returns:
+            Response: The processed HTTP response.
+        """
         start_time = time.time()
 
         # Process the request
@@ -27,27 +41,28 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
         duration = time.time() - start_time
         endpoint = request.url.path
 
-        REQUEST_LATENCY.labels(method=request.method, endpoint=endpoint).observe(
-            duration
-        )
+        REQUEST_LATENCY.labels(method=request.method, endpoint=endpoint).observe(duration)
         REQUEST_COUNT.labels(
             method=request.method, endpoint=endpoint, status=response.status_code
         ).inc()
 
-        return response  # if i dont return response , the middleware will block every thing.
+        return response
 
 
 def setup_metrics(app: FastAPI):
     """
-    Setup Prometheus metrics middleware and endpoint
+    Configures Prometheus metrics middleware and adds a specialized metrics endpoint.
+    
+    Args:
+        app (FastAPI): The FastAPI application instance.
     """
-    # Add Prometheus middleware
     app.add_middleware(PrometheusMiddleware)
 
-    # this end point i will get all the data analyics i want.
-    # include_in_schema=False -> if i go to docs i will not find this endpoint as it so sensetive.
-    # generate_latest(), media_type=CONTENT_TYPE_LATEST -> get the lastest data analytics.
-    # @app.get("/metrics") is so easy to be predicted and i dont want it to be available for user, so using random name will be more secure.
-    @app.get("/TrhBVe_m5gg2002_E5VVqS", include_in_schema=False)
+    # Obfuscated metrics endpoint for security
+    @app.get("/metrics/stats", include_in_schema=False)
     def metrics():
+        """
+        Exposes current metrics in Prometheus format.
+        """
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+

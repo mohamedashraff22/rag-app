@@ -1,7 +1,14 @@
+"""
+Response signals enum module for standardized API feedback.
+"""
+
 from enum import Enum
 
 
 class ResponseSignal(Enum):
+    """
+    Enumeration of response signals and messages used across the application.
+    """
     FILE_VALITADED_SUCCESS = "File validated successfully."
     FILE_TYPE_NOT_SUPPORTED = "File type not allowed."
     FILE_SIZE_EXCEEDED = "File size exceeds the maximum allowed size."
@@ -10,14 +17,15 @@ class ResponseSignal(Enum):
     PROCESSING_FAILED = "Processing failed."
     PROCESSING_SUCCESS = "Processing successfully."
     NO_FILES_ERROR = "No files found in the project."
-    FILE_ID_ERROR = "no file found with this id "
+    FILE_ID_ERROR = "No file found with this ID."
     
-    PROJECT_NOT_FOUND_ERROR = "project_not_found"
-    INSERT_INTO_VECTORDB_ERROR = "insert_into_vectordb_error"
-    INSERT_INTO_VECTORDB_SUCCESS = "insert_into_vectordb_success"
-    VECTORDB_COLLECTION_RETRIEVED = "vectordb_collection_retrieved"
-    VECTORDB_SEARCH_ERROR = "vectordb_search_error"
-    VECTORDB_SEARCH_SUCCESS = "vectordb_search_success"
-    RAG_ANSWER_ERROR = "rag_answer_error"
-    RAG_ANSWER_SUCCESS = "rag_answer_success"
+    PROJECT_NOT_FOUND_ERROR = "Project not found."
+    INSERT_INTO_VECTORDB_ERROR = "Error-inserting into vector database."
+    INSERT_INTO_VECTORDB_SUCCESS = "Successfully inserted into vector database."
+    VECTORDB_COLLECTION_RETRIEVED = "Vector database collection retrieved."
+    VECTORDB_SEARCH_ERROR = "Error during vector database search."
+    VECTORDB_SEARCH_SUCCESS = "Vector database search successful."
+    RAG_ANSWER_ERROR = "Error generating RAG answer."
+    RAG_ANSWER_SUCCESS = "RAG answer generated successfully."
+
     
